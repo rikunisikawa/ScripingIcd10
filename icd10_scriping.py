@@ -1,7 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 
-url = 'http://www.byomei.org/icd10/A00-B99.html'  # 実際のURLに置き換えてください
+url = 'http://www.byomei.org/icd10/A00-B99.html'
 
 # HTTP GETリクエストを送信してページの内容を取得する
 response = requests.get(url)
@@ -18,6 +19,6 @@ for li in soup.select('li li'):
     name = li.find('a').text.replace(code, '').strip()  # 名称を取得
     icd_codes.append((code, name))
 
-# 結果を出力する
-for code, name in icd_codes:
-    print(f"{code}: {name}")
+result_df = pd.DataFrame(icd_codes)
+
+result_df.to_csv('icd10_AB_3桁.csv', index=False, encoding='utf-8-sig')
