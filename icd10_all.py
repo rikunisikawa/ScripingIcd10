@@ -1,6 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from sqlalchemy import create_engine
+import pyodbc
+import configparser
 
 def scrape_icd_codes(url):
     try:
@@ -24,7 +27,7 @@ def scrape_icd_codes(url):
         print(f"An error occurred: {e}")
         return []
 
-def save_to_csv(icd_codes, filename='icd10_AB_3桁.csv'):
+def save_to_csv(icd_codes, filename='icd10_3.csv'):
     try:
         # データフレームに変換
         result_df = pd.DataFrame(icd_codes)
@@ -37,6 +40,30 @@ def save_to_csv(icd_codes, filename='icd10_AB_3桁.csv'):
     except Exception as e:
         print(f"エラー: {e}")
 
+def get_db_config(config_file='config.ini'):
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    db_config = {
+        'server': config.get('database', 'server'),
+        'database': config.get('database', 'database')
+    }
+    return db_config
+
+def save_to_sql_server(icd_codes, table_name, server, database):
+    try:
+        # データフレームに変換
+        result_df = pd.DataFrame(icd_codes, columns=['icd_code_first3', 'name'])
+        
+        # SQL Serverへの接続エンジンを作成
+        connection_string = f"mssql+pyodbc://@{server}/{database}?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes"
+        engine = create_engine(connection_string)
+        
+        # データフレームをSQL Serverに保存
+        result_df.to_sql(table_name, con=engine, if_exists='replace', index=False)
+        
+        print(f"{table_name} テーブルにデータを保存しました")
+    except Exception as e:
+        print(f"エラー: {e}")
 
 def get_all_url():
     url = 'http://www.byomei.org/icd10/index.html'
@@ -70,9 +97,18 @@ if __name__ == '__main__':
         url = 'http://www.byomei.org/icd10/'+link
         print(url)
         for icd in scrape_icd_codes(url):
-            icd_codes.append(icd)
+            if(icd[1] != ''):# たまに例外で取得してしまうコード
+                icd_codes.append(icd)
 
     save_to_csv(icd_codes)
 
+    # データベース接続情報の取得
+    db_config = get_db_config()
+    save_to_sql_server(
+        icd_codes,
+        table_name='M_icd10_first3',
+        server=db_config['server'],
+        database=db_config['database']
+    )
 
 
