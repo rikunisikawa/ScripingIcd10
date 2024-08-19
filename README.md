@@ -7,3 +7,6 @@
 ICD10 国際疾病分類第10版（2013年版）  
 http://www.byomei.org/icd10/index.html  
 
+## コード
+icd10_all.py  
+（他はテスト）
