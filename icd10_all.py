@@ -53,6 +53,12 @@ def save_to_sql_server(icd_codes, table_name, server, database):
     try:
         # データフレームに変換
         result_df = pd.DataFrame(icd_codes, columns=['icd_code_first3', 'name'])
+
+        # 型チェック
+        if not all(isinstance(code, str) for code in result_df['icd_code_first3']):
+            raise ValueError("icd_code_first3はstring")
+        if not all(isinstance(name, str) for name in result_df['name']):
+            raise ValueError("nameはstring")
         
         # SQL Serverへの接続エンジンを作成
         connection_string = f"mssql+pyodbc://@{server}/{database}?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes"
@@ -95,14 +101,14 @@ if __name__ == '__main__':
     icd_codes = []
     for link in links:
         url = 'http://www.byomei.org/icd10/'+link
-        print(url)
+        print(url)#ログ
         for icd in scrape_icd_codes(url):
             if(icd[1] != ''):# たまに例外で取得してしまうコード
                 icd_codes.append(icd)
 
     save_to_csv(icd_codes)
 
-    # データベース接続情報の取得
+    # データベース接続情報の取得(バージョン管理外)
     db_config = get_db_config()
     save_to_sql_server(
         icd_codes,
